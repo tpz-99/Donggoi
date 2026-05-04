@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devchill Tools - Trình Tạo Gói Auto FB</title>
+    <!-- Tailwind CSS cho Giao diện -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- JSZip để nén file -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background-color: #09090b;
+            color: #f8fafc;
+            font-family: "Inter", system-ui, -apple-system, sans-serif;
+        }
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 selection:bg-sky-500/30">
+
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <div class="flex items-center gap-4 mb-8 pb-4 border-b border-slate-800">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-400 to-emerald-500 flex items-center justify-center shadow-lg shadow-sky-500/20 flex-shrink-0">
+                <i data-lucide="package" class="text-white w-7 h-7"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-emerald-400">
+                    Trình Đóng Gói
+                </h1>
+                <p class="text-slate-400 text-sm md:text-base mt-1">Chuẩn bị dữ liệu bài đăng cho Devchill Auto FB</p>
+            </div>
+        </div>
+
+        <!-- Main Content Form -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 md:p-7 shadow-2xl backdrop-blur-md">
+            
+            <!-- Text Area -->
+            <div class="mb-6">
+                <label class="flex items-center gap-2 text-sm md:text-base font-semibold text-sky-400 mb-3">
+                    <i data-lucide="file-text" class="w-5 h-5"></i> Nội dung bài đăng
+                </label>
+                <textarea
+                    id="post-content"
+                    placeholder="Nhập nội dung bạn muốn đăng tải lên nhóm Facebook..."
+                    class="w-full h-40 bg-black/50 border border-slate-700 rounded-xl p-4 text-sm md:text-base text-slate-200 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all resize-none placeholder:text-slate-600"
+                ></textarea>
+            </div>
+
+            <!-- Image Upload Area -->
+            <div class="mb-6">
+                <label class="flex items-center gap-2 text-sm md:text-base font-semibold text-emerald-400 mb-3">
+                    <i data-lucide="image" class="w-5 h-5"></i> Hình ảnh đính kèm <span id="image-count" class="text-emerald-500">(0)</span>
+                </label>
+                
+                <div 
+                    onclick="document.getElementById('file-input').click()"
+                    class="w-full border-2 border-dashed border-slate-700 hover:border-emerald-500/50 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all bg-black/30 hover:bg-emerald-500/5"
+                >
+                    <i data-lucide="upload-cloud" class="text-slate-500 w-10 h-10 mb-3"></i>
+                    <p class="text-sm md:text-base text-slate-300 font-medium text-center">Nhấn để chọn hình ảnh từ thiết bị</p>
+                    <p class="text-xs text-slate-500 mt-2 text-center">Hỗ trợ JPG, PNG, WEBP, GIF</p>
+                    <input 
+                        type="file" 
+                        id="file-input"
+                        multiple 
+                        accept="image/*"
+                        class="hidden" 
+                        onchange="handleFiles(event)"
+                    />
+                </div>
+
+                <!-- Image Previews -->
+                <div id="preview-container" class="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+                    <!-- Ảnh sẽ được render vào đây -->
+                </div>
+            </div>
+
+            <!-- File Name Option -->
+            <div class="mb-8 p-4 bg-slate-800/30 border border-slate-700/50 rounded-xl">
+                <label class="flex items-center gap-2 text-sm md:text-base font-semibold text-violet-400 mb-2">
+                    <i data-lucide="file-archive" class="w-5 h-5"></i> Tên file nén tải về (Tùy chọn)
+                </label>
+                <input 
+                    type="text" 
+                    id="custom-filename"
+                    placeholder="VD: bai-dang-ban-hang (Nếu để trống sẽ dùng tên mặc định)"
+                    class="w-full bg-black/50 border border-slate-700 rounded-lg p-3 text-sm md:text-base text-slate-200 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all placeholder:text-slate-600"
+                />
+            </div>
+
+            <!-- Actions -->
+            <div class="flex flex-col md:flex-row items-center justify-between pt-5 border-t border-slate-800 gap-4">
+                <div class="text-xs md:text-sm text-slate-500 bg-slate-800/50 p-3 rounded-lg flex-1">
+                    <i data-lucide="info" class="w-4 h-4 inline-block mb-1 text-sky-400"></i> 
+                    Tệp .zip tải về chứa mã định danh (ID). Kéo thả file .zip này vào ô ảnh trên tool Extension để tự động điền toàn bộ!
+                </div>
+                <button
+                    id="generate-btn"
+                    onclick="generateZipPack()"
+                    class="w-full md:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-sky-500 to-emerald-500 hover:from-sky-400 hover:to-emerald-400 text-white px-8 py-3.5 rounded-xl font-bold text-sm md:text-base transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                >
+                    <i data-lucide="download" class="w-5 h-5"></i> Tạo File Gói (.ZIP)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Khởi tạo Icon
+        lucide.createIcons();
+
+        let selectedFiles = [];
+
+        function handleFiles(event) {
+            const files = Array.from(event.target.files);
+            const validImages = files.filter(file => file.type.startsWith('image/'));
+            selectedFiles = [...selectedFiles, ...validImages];
+            
+            // Reset input để có thể chọn lại cùng 1 file nếu cần
+            event.target.value = ''; 
+            
+            renderPreviews();
+        }
+
+        function removeImage(index) {
+            selectedFiles.splice(index, 1);
+            renderPreviews();
+        }
+
+        function renderPreviews() {
+            const container = document.getElementById('preview-container');
+            const countLabel = document.getElementById('image-count');
+            
+            container.innerHTML = '';
+            countLabel.innerText = `(${selectedFiles.length})`;
+
+            selectedFiles.forEach((file, index) => {
+                const url = URL.createObjectURL(file);
+                const div = document.createElement('div');
+                div.className = 'relative group aspect-square rounded-lg overflow-hidden border border-slate-700 bg-black shadow-inner';
+                
+                div.innerHTML = `
+                    <img src="${url}" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity">
+                    <button 
+                        onclick="event.stopPropagation(); removeImage(${index})"
+                        class="absolute top-1.5 right-1.5 bg-red-500/90 hover:bg-red-500 text-white p-1.5 rounded-md opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all shadow-md"
+                        title="Xóa ảnh này"
+                    >
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+            
+            // Gọi lại để render icon X mới thêm
+            lucide.createIcons();
+        }
+
+        async function generateZipPack() {
+            const content = document.getElementById('post-content').value;
+            const customFileNameInput = document.getElementById('custom-filename').value.trim();
+            const btn = document.getElementById('generate-btn');
+
+            if (!content.trim() && selectedFiles.length === 0) {
+                alert('Vui lòng nhập nội dung bài viết hoặc thêm ít nhất 1 hình ảnh!');
+                return;
+            }
+
+            // Đổi UI sang trạng thái Đang xử lý
+            const originalBtnHTML = `<i data-lucide="download" class="w-5 h-5"></i> Tạo File Gói (.ZIP)`;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Đang nén file...`;
+            btn.disabled = true;
+            lucide.createIcons();
+
+            try {
+                // Khởi tạo JSZip
+                const zip = new JSZip();
+                
+                // Tạo mã ID duy nhất để extension nhận diện
+                const uniqueId = 'DC_PACK_' + Date.now().toString() + '_' + Math.floor(Math.random() * 10000).toString();
+
+                // 1. Ghi file post_data.json
+                const postMetadata = {
+                    id: uniqueId,
+                    content: content,
+                    imageCount: selectedFiles.length,
+                    createdAt: new Date().toISOString()
+                };
+                zip.file("post_data.json", JSON.stringify(postMetadata, null, 2));
+
+                // 2. Ghi hình ảnh
+                selectedFiles.forEach((file, index) => {
+                    const extension = file.name.split('.').pop() || 'jpg';
+                    const newFileName = `image_${index + 1}_${Date.now()}.${extension}`;
+                    zip.file(newFileName, file);
+                });
+
+                // 3. Tiến hành đóng gói file Zip
+                const blob = await zip.generateAsync({ type: "blob" });
+                const url = URL.createObjectURL(blob);
+                
+                // Xử lý tên file tùy chỉnh
+                let finalFileName = customFileNameInput;
+                if (!finalFileName) {
+                    finalFileName = `AutoFB_${uniqueId}`;
+                } else {
+                    // Loại bỏ đuôi .zip nếu người dùng lỡ nhập vào để tránh tên thành .zip.zip
+                    finalFileName = finalFileName.replace(/\.zip$/i, '');
+                }
+
+                // 4. Tải xuống
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${finalFileName}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+            } catch (error) {
+                console.error("Lỗi khi tạo gói:", error);
+                alert("Đã xảy ra lỗi khi đóng gói file. Vui lòng thử lại!");
+            } finally {
+                // Khôi phục UI nút bấm
+                btn.innerHTML = originalBtnHTML;
+                btn.disabled = false;
+                lucide.createIcons();
+            }
+        }
+    </script>
+</body>
+</html>
